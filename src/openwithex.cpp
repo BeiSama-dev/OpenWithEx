@@ -183,12 +183,9 @@ int WINAPI wWinMain(
 
 	if (!*szPath)
 	{
-		LocalizedMessageBox(
-			NULL,
-			IDS_ERR_NOPATH,
-			MB_ICONERROR
-		);
-		return -1;
+		/* 没有指定文件（比如直接双击运行）：不弹框，直接静默退出 */
+		CoUninitialize();
+		return 0;
 	}
 
 	ShowOpenWithDialog(NULL, szPath, IMMERSIVE_OPENWITH_OVERRIDE);

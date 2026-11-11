@@ -67,6 +67,53 @@ void CVistaOpenAsDlg::_InitProgList()
 		NULL
 	);
 
+	/*
+	 * 瓦片尺寸：照抄 Win7 shell32
+	 *   COpenAs::_InitOpenAsDlg → LVM_SETTILEVIEWINFO
+	 *   CLVTileView::RecalcTileSize → 高 = (cLines+1) * 行高 + 4*SM_CYBORDER
+	 *
+	 *   宽 = (客户区宽 - SM_CXVSCROLL) / 2.2   ← 不是 /2，所以右边会留一点空
+	 *   高：Win7 传的是 cy = 0（交给 comctl32 按内容自算），但 Win10/11 的 comctl32
+	 *       会把 "cy=0 + LVTVIF_FIXEDSIZE" 当成无效尺寸、连宽度一起退回自动，
+	 *       结果又变三列，所以这里必须给显式高度；41 是实测和 Win7 行距一致的值。
+	 */
+	{
+		HWND hList = GetDlgItem(m_hWnd, IDD_OPENWITH_PROGLIST);
+
+		RECT rc = { 0 };
+		GetClientRect(hList, &rc);
+
+		/* 行高直接固定 41（96 DPI 下和 Win7 实测一致），按系统 DPI 等比缩放。
+		   之前用 tm.tmHeight * 2 + 9 推算，宋体 9pt 的 tmHeight 若是 15 就会算成 39，
+		   比 41 矮 2px —— 所以别推算，直接用实测值。 */
+		HDC hdcScreen = GetDC(NULL);
+		int dpiY = hdcScreen ? GetDeviceCaps(hdcScreen, LOGPIXELSY) : 96;
+		ReleaseDC(NULL, hdcScreen);
+
+		LVTILEVIEWINFO tvi = { sizeof(LVTILEVIEWINFO) };
+		tvi.dwMask = LVTVIM_TILESIZE;
+		tvi.dwFlags = LVTVIF_FIXEDSIZE;
+		tvi.sizeTile.cx = (LONG)((rc.right - rc.left - GetSystemMetrics(SM_CXVSCROLL)) / 2.2);
+		tvi.sizeTile.cy = MulDiv(41, dpiY ? dpiY : 96, 96);
+
+		SendDlgItemMessageW(
+			m_hWnd,
+			IDD_OPENWITH_PROGLIST,
+			LVM_SETTILEVIEWINFO,
+			0,
+			(LPARAM)&tvi
+		);
+
+		/* Win7 还给列表开了双缓冲（LVS_EX_DOUBLEBUFFER），滚动/重绘不闪 */
+		SendDlgItemMessageW(
+			m_hWnd,
+			IDD_OPENWITH_PROGLIST,
+			LVM_SETEXTENDEDLISTVIEWSTYLE,
+			LVS_EX_DOUBLEBUFFER,
+			LVS_EX_DOUBLEBUFFER
+		);
+	}
+
 	HIMAGELIST himl = NULL;
 	HIMAGELIST himlSmall = NULL;
 	Shell_GetImageLists(&himl, &himlSmall);

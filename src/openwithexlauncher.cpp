@@ -403,14 +403,7 @@ STDMETHODIMP COpenWithExLauncher::Execute()
 	{
 		ShowOpenWithDialog(NULL, szPath, flags);
 	}
-	else
-	{
-		LocalizedMessageBox(
-			NULL,
-			IDS_ERR_NOPATH,
-			MB_ICONERROR
-		);
-	}
+	/* 没拿到路径（比如调用方没传选中项）：不弹框，静默退出 */
 	PostThreadMessageW(GetCurrentThreadId(), 0x8001, 0, 0);
 	Log(method, L"Exiting method\n");
 	return S_OK;
